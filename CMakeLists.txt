@@ -56,7 +56,11 @@ set(KERNEL_ELF ${BUILD}/kernel.elf)
 set(KERNEL_BIN ${BUILD}/kernel.bin)
 
 add_executable(${KERNEL_TARGET}
+    ${SRC}/kernel/start.S
     ${SRC}/kernel/kmain.c
+    ${SRC}/kernel/serial.c
+    ${SRC}/kernel/idt.c
+    ${SRC}/kernel/isr.S
 )
 
 # produce build/kernel.elf
@@ -115,8 +119,15 @@ add_custom_command(
     DEPENDS mbr stage2 kernel_bin
 )
 
-add_custom_target(image ALL DEPENDS ${IMG})
-
+add_custom_target(image
+  COMMAND ${CMAKE_COMMAND} -E rm -f ${IMG}
+  COMMAND truncate -s ${IMG_SIZE_MB}M ${IMG}
+  COMMAND dd if=${MBR_BIN} of=${IMG} bs=512 count=1 conv=notrunc status=none
+  COMMAND dd if=${STAGE2_BIN} of=${IMG} bs=512 seek=1 conv=notrunc status=none
+  COMMAND dd if=${KERNEL_BIN} of=${IMG} bs=512 seek=${KERNEL_LBA} conv=notrunc status=none
+  DEPENDS mbr stage2 kernel_bin
+  USES_TERMINAL
+)
 # ============================================================
 # QEMU run targets
 # ============================================================

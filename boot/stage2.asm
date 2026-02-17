@@ -3,7 +3,7 @@ org 0x8000
 
 KERNEL_LOAD     equ 0x00020000
 KERNEL_LBA      equ 10
-KERNEL_SECTORS  equ 64
+KERNEL_SECTORS  equ 64 ;  32
 
 start:
     cli

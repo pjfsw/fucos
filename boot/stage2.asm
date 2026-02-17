@@ -37,6 +37,8 @@ start:
     mov al,'J'
     int 0x10
 
+    call enable_a20
+
     ; ---- switch to protected mode ----
     cli
     lgdt [gdt_descriptor]
@@ -46,6 +48,13 @@ start:
     mov cr0, eax
 
     jmp 0x08:pm_entry
+
+enable_a20:
+    in   al, 0x92
+    or   al, 00000010b      ; set A20 enable bit
+    and  al, 11111110b      ; optional: clear reset bit
+    out  0x92, al
+    ret    
 
 ; ----------------------------------------------------
 ; 32-bit protected mode

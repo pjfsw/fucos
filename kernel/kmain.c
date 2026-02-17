@@ -1,12 +1,8 @@
+#include <stdint.h>
+
 #include "idt.h"
 #include "serial.h"
-
-static void vga_puts(const char* s, int col) {
-    volatile unsigned short* vga = (unsigned short*)0xB8000;
-    while (*s) {
-        vga[col++] = (unsigned short)(*s++ | (0x0F << 8));
-    }
-}
+#include "textmode.h"
 
 static char hex_digit(unsigned v) {
     return (v < 10) ? ('0' + v) : ('A' + (v - 10));
@@ -40,6 +36,27 @@ void isr_handler(uint32_t int_no, uint32_t err_code) {
     for (;;) { __asm__ __volatile__("cli; hlt"); }
 }
 
+int a20_enabled(void)
+{
+    volatile uint8_t *low  = (uint8_t*)0x000500;
+    volatile uint8_t *high = (uint8_t*)0x100500; // 1 MiB
+
+    uint8_t old_low  = *low;
+    uint8_t old_high = *high;
+
+    *low  = 0xAA;
+    *high = 0x55;
+
+    int enabled = (*low != *high);
+
+    // restore memory
+    *low  = old_low;
+    *high = old_high;
+
+    return enabled;
+}
+
+
 static inline void trigger_de(void) {
     __asm__ volatile(
         "xor %%edx, %%edx \n"
@@ -54,14 +71,25 @@ static inline void trigger_de(void) {
 
 void kmain(void) {
     serial_init();
-    serial_println("FUCOS BOOT");
+    serial_println("FUCOS BOOT START");
 
     idt_init();
+    serial_println("Idt active");
 
     // prove we’re alive
-    vga_puts("FUCOS", 0);
+    vga_disable_cursor();
+    vga_clear();
+    vga_puts("FUCOS", 1, 0);
+    vga_puts("Another line", 2, 0);
 
-    trigger_de();
+    serial_println("Testing A20");
+    if (a20_enabled()) {
+        serial_println("A20 enabled");
+    } else {
+        serial_println("A20 NOT enabled");
+    }
+
+    //trigger_de();
 
     for (;;) { __asm__ __volatile__("hlt"); }
 }

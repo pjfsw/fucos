@@ -59,6 +59,7 @@ add_executable(${KERNEL_TARGET}
     ${SRC}/kernel/start.S
     ${SRC}/kernel/kmain.c
     ${SRC}/kernel/serial.c
+    ${SRC}/kernel/textmode.c
     ${SRC}/kernel/idt.c
     ${SRC}/kernel/isr.S
 )

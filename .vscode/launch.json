@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run OS (QEMU)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/kernel.elf",
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "qemu: run",
+      "externalConsole": false,
+      "noDebug": true
+    },
+    {
+      "name": "Debug OS (QEMU)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/kernel.elf",
+      "cwd": "${workspaceFolder}",
+      "MIMode": "gdb",
+      "miDebuggerPath": "/usr/bin/gdb",
+      "miDebuggerServerAddress": "localhost:1234",
+      "stopAtEntry": true,
+      "externalConsole": false,
+      "preLaunchTask": "qemu: debug (wait gdb)"
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "cmake: configure",
+      "type": "shell",
+      "command": "cmake -S . -B build -G Ninja",
+      "problemMatcher": []
+    },
+    {
+      "label": "cmake: build (all)",
+      "type": "shell",
+      "command": "cmake --build build",
+      "dependsOn": ["cmake: configure"],
+      "group": "build",
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "cmake: image",
+      "type": "shell",
+      "command": "cmake --build build --target image",
+      "dependsOn": ["cmake: configure"],
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "qemu: run",
+      "type": "shell",
+      "command": "cmake --build build --target run",
+      "dependsOn": ["cmake: configure"],
+      "problemMatcher": []
+    },
+    {
+      "label": "qemu: debug (wait gdb)",
+      "type": "shell",
+      "command": "cmake --build build --target debug",
+      "dependsOn": ["cmake: configure"],
+      "problemMatcher": []
+    }
+  ]
+}

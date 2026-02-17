@@ -1,0 +1,126 @@
+bits 16
+org 0x8000
+
+KERNEL_LOAD     equ 0x00020000
+KERNEL_LBA      equ 10
+KERNEL_SECTORS  equ 64
+
+start:
+    mov ah, 0x0E
+    mov al, 'S'
+    int 0x10
+
+    cli
+    xor ax, ax
+    mov ds, ax
+    sti
+
+    ; ES:BX destination buffer
+    mov ax, (KERNEL_LOAD >> 4)   ; segment = addr / 16
+    mov es, ax
+    xor bx, bx
+
+    ; ---- Build Disk Address Packet ----
+    mov word [dap + 4], bx       ; offset
+    mov word [dap + 6], es       ; segment
+    mov word [dap + 2], KERNEL_SECTORS
+    mov dword [dap + 8], KERNEL_LBA
+    mov dword [dap + 12], 0
+
+    mov ah, 0x0E
+    mov al, 'R'
+    int 0x10
+
+    mov dl, 0x80                 ; first HDD in QEMU
+    mov si, dap
+    mov ah, 0x42
+    int 0x13
+    jc fail
+
+    mov ah, 0x0E
+    mov al, 'J'
+    int 0x10
+
+    ; 
+    ; SETUP 32-BIT MODE
+    ; --- after successful disk read ---
+
+    cli
+
+    ; load GDT
+    lgdt [gdt_desc]
+
+    ; enter protected mode
+    mov eax, cr0
+    or eax, 1
+    mov cr0, eax
+
+    ; far jump to flush prefetch queue + load CS
+    jmp 0x08:pm_entry
+
+    bits 32
+    pm_entry:
+    ; set up flat segments
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    mov ss, ax
+
+    ; set up a stack (pick something safe below 640K for now)
+    mov esp, 0x0009F000
+
+    ; now jump to 32-bit kernel entry
+    jmp dword KERNEL_LOAD
+
+
+fail:
+    mov si, msg
+.print:
+    lodsb
+    test al, al
+    jz .print_code
+    mov ah, 0x0E
+    int 0x10
+    jmp .print
+
+.print_code:
+    mov al, ah        ; BIOS error code
+    call print_hex
+.hang:
+    cli
+    hlt
+    jmp .hang
+
+print_hex:
+    push ax
+    shr al, 4
+    call print_nibble
+    pop ax
+    and al, 0x0F
+    call print_nibble
+    ret
+
+print_nibble:
+    cmp al, 10
+    jl .digit
+    add al, 'A' - 10
+    jmp .out
+.digit:
+    add al, '0'
+.out:
+    mov ah, 0x0E
+    int 0x10
+    ret
+
+
+msg db "stage2 disk fail",0
+
+dap:
+    db 0x10        ; size
+    db 0
+    dw 0            ; sector count
+    dw 0            ; offset
+    dw 0            ; segment
+    dq 0            ; LBA

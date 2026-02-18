@@ -57,8 +57,8 @@ static char hex_digit(unsigned v) {
 
 static volatile uint32_t ticks = 0;
 
-void isr_handler(uint32_t int_no, uint32_t err_code) {
-    (void)err_code;
+void isr_handler(registers_t *regs) {
+    uint32_t int_no = regs->int_no;
 
     if (int_no < 32) {
         __asm__ __volatile__("cli");

@@ -25,10 +25,36 @@ isr\n:
     jmp isr_common
 .endm
 
+isr_common:
+    pushad              // Pushes edi, esi, ebp, esp, ebx, edx, ecx, eax
+
+    mov ax, ds          // Save the current data segment
+    push eax            // Push it as a dword
+
+    mov ax, 0x10        // Load the kernel data segment descriptor
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    push esp            // Push the stack pointer (points to the registers_t struct)
+    call isr_handler
+    add esp, 4          // Clean up the pushed ESP
+
+    pop eax             // Restore the original data segment
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    popad               // Restore edi, esi, ebp, etc.
+    add esp, 8          // Clean up the int_no and error_code pushed by the macro
+    iret                // Return to the interrupted code
+
 // Common stub: stack on entry
 //  NOERR: [int_no][err=0][eip][cs][eflags]...
 //   ERR : [int_no][err ][eip][cs][eflags]...
-isr_common:
+old_isr_common:
     mov eax, [esp]      // int_no
     mov ebx, [esp+4]    // err_code
 

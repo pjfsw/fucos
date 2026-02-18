@@ -1,11 +1,16 @@
 #include "io.h"
 
+static volatile unsigned short* vga = (unsigned short*)0xB8000;
+
 void vga_puts(const char* s, int row, int col) {
-    volatile unsigned short* vga = (unsigned short*)0xB8000;
     int ofs = row * 80 + col;
     while (*s) {
         vga[ofs++] = (unsigned short)(*s++ | (0x0F << 8));
     }
+}
+
+void vga_putc(const char c, int row, int col) {
+    vga[row * 80 + col] = (unsigned short)(c | (0x0F << 8));    
 }
 
 void vga_clear() {

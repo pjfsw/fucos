@@ -55,6 +55,13 @@ static char hex_digit(unsigned v) {
     return (v < 10) ? ('0' + v) : ('A' + (v - 10));
 }
 
+static inline char high_nibble(unsigned v) {
+    return hex_digit((v >> 4) & 0xF);
+}
+static inline char low_nibble(unsigned v) {
+    return hex_digit(v & 0xF);
+}
+
 static volatile uint32_t ticks = 0;
 
 void isr_handler(registers_t *regs) {
@@ -73,7 +80,13 @@ void isr_handler(registers_t *regs) {
 
     if (irq == 0) {
         ticks++;
-        if ((ticks % 100) == 0) serial_println("tick");
+        if ((ticks % 100) == 0) {
+            int s = ticks / 100;
+            vga_putc(high_nibble(s % 60), 2, 7);
+            vga_putc(low_nibble(s % 60), 2, 8);
+        }
+        //serial_println("tick");
+
     } else if (irq == 1) {
         uint8_t sc = inb(0x60);
         serial_print("kbd ");
@@ -129,7 +142,7 @@ void kmain(void) {
     vga_disable_cursor();
     vga_clear();
     vga_puts("FUCOS", 1, 0);
-    vga_puts("Another line", 2, 0);
+    vga_puts("Timer: ", 2, 0);
 
     serial_println("Testing A20");
     if (a20_enabled()) {

@@ -4,6 +4,8 @@
 
 void vga_puts(const char* s, int row, int col);
 
+void vga_putc(const char c, int row, int col);
+
 void vga_clear();
 
 void vga_disable_cursor(void);

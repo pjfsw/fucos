@@ -149,7 +149,7 @@ void put_hex32(uint32_t d) {
 
 void draw_a_rainbow(VbeModeInfo *vbeModeInfo) {
     uint16_t *fb = (uint16_t*)vbeModeInfo->framebuffer;
-    for (int i = 0; i < 800; i++) {
+    for (int i = 0; i < 800*600; i++) {
         fb[i] = i;
     }
 }

@@ -6,6 +6,7 @@
 kstart:
     cli
     movl $stack_top, %esp
+    push %ebx
     call kmain
 
 1:

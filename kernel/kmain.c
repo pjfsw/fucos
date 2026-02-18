@@ -4,6 +4,7 @@
 #include "serial.h"
 #include "textmode.h"
 #include "io.h"
+#include "vbemodeinfo.h"
 
 #define PIC1_CMD   0x20
 #define PIC1_DATA  0x21
@@ -131,7 +132,29 @@ static inline void trigger_de(void) {
     );
 }
 
-void kmain(void) {
+void put_hex8(uint8_t b) {
+    serial_putc(high_nibble(b));
+    serial_putc(low_nibble(b));
+}
+
+void put_hex16(uint16_t w) {
+    put_hex8((uint8_t)(w >> 8));
+    put_hex8((uint8_t)(w & 255));
+}
+
+void put_hex32(uint32_t d) {
+    put_hex16((uint16_t)(d >> 16));
+    put_hex16((uint16_t)(d & 65535));
+}
+
+void draw_a_rainbow(VbeModeInfo *vbeModeInfo) {
+    uint16_t *fb = (uint16_t*)vbeModeInfo->framebuffer;
+    for (int i = 0; i < 800; i++) {
+        fb[i] = i;
+    }
+}
+
+void kmain(VbeModeInfo *vbeModeInfo) {
     serial_init();
     serial_println("FUCOS BOOT START");
 
@@ -150,6 +173,19 @@ void kmain(void) {
     } else {
         serial_println("A20 NOT enabled");
     }
+
+    put_hex16(vbeModeInfo->width);
+    serial_putc('x');
+    put_hex16(vbeModeInfo->height);
+    serial_putc('x');
+    put_hex8(vbeModeInfo->planes);
+    serial_putc('x');
+    put_hex8(vbeModeInfo->bpp);
+    serial_println("");
+
+    put_hex32(vbeModeInfo->framebuffer);
+
+    draw_a_rainbow(vbeModeInfo);
 
     pic_remap(0x20, 0x28);
     pit_init(100);          // 100 Hz

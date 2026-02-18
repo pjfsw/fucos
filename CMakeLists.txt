@@ -137,9 +137,9 @@ add_custom_target(run
     COMMAND ${QEMU}
         -machine accel=kvm
         -cpu host
-        -m 64M
+        -m 128M
         -drive format=raw,file=${IMG}
-        -vga std
+        -vga cirrus
         -display sdl
         -serial stdio
     DEPENDS image
@@ -150,7 +150,7 @@ add_custom_target(debug
     COMMAND ${QEMU}
         -machine accel=kvm
         -cpu host
-        -m 64M
+        -m 128M
         -drive format=raw,file=${IMG}
         -vga std
         -display sdl

@@ -3,8 +3,8 @@
 typedef struct __attribute__((packed)) {
     uint16_t offset_low;
     uint16_t selector;
-    uint8_t  zero;
-    uint8_t  type_attr;
+    uint8_t zero;
+    uint8_t type_attr;
     uint16_t offset_high;
 } idt_entry_t;
 
@@ -14,7 +14,7 @@ typedef struct __attribute__((packed)) {
 } idt_ptr_t;
 
 static idt_entry_t idt[256];
-static idt_ptr_t   idt_ptr;
+static idt_ptr_t idt_ptr;
 
 extern void isr0(void);
 extern void isr1(void);
@@ -48,12 +48,28 @@ extern void isr28(void);
 extern void isr29(void);
 extern void isr30(void);
 extern void isr31(void);
+extern void isr32(void);
+extern void isr33(void);
+extern void isr34(void);
+extern void isr35(void);
+extern void isr36(void);
+extern void isr37(void);
+extern void isr38(void);
+extern void isr39(void);
+extern void isr40(void);
+extern void isr41(void);
+extern void isr42(void);
+extern void isr43(void);
+extern void isr44(void);
+extern void isr45(void);
+extern void isr46(void);
+extern void isr47(void);
 
 static void idt_set_gate(int n, uint32_t handler) {
-    idt[n].offset_low  = handler & 0xFFFF;
-    idt[n].selector    = 0x08;      // matches your stage2 GDT code segment
-    idt[n].zero        = 0;
-    idt[n].type_attr   = 0x8E;      // present, ring0, 32-bit interrupt gate
+    idt[n].offset_low = handler & 0xFFFF;
+    idt[n].selector = 0x08;  // matches your stage2 GDT code segment
+    idt[n].zero = 0;
+    idt[n].type_attr = 0x8E;  // present, ring0, 32-bit interrupt gate
     idt[n].offset_high = (handler >> 16) & 0xFFFF;
 }
 
@@ -63,7 +79,7 @@ static inline void lidt(const idt_ptr_t* p) {
 
 void idt_init(void) {
     idt_ptr.limit = (uint16_t)(sizeof(idt) - 1);
-    idt_ptr.base  = (uint32_t)&idt[0];
+    idt_ptr.base = (uint32_t)&idt[0];
 
     // zero table
     for (int i = 0; i < 256; i++) {
@@ -71,16 +87,16 @@ void idt_init(void) {
     }
 
     // CPU exceptions 0..31
-    idt_set_gate(0,  (uint32_t)isr0);
-    idt_set_gate(1,  (uint32_t)isr1);
-    idt_set_gate(2,  (uint32_t)isr2);
-    idt_set_gate(3,  (uint32_t)isr3);
-    idt_set_gate(4,  (uint32_t)isr4);
-    idt_set_gate(5,  (uint32_t)isr5);
-    idt_set_gate(6,  (uint32_t)isr6);
-    idt_set_gate(7,  (uint32_t)isr7);
-    idt_set_gate(8,  (uint32_t)isr8);
-    idt_set_gate(9,  (uint32_t)isr9);
+    idt_set_gate(0, (uint32_t)isr0);
+    idt_set_gate(1, (uint32_t)isr1);
+    idt_set_gate(2, (uint32_t)isr2);
+    idt_set_gate(3, (uint32_t)isr3);
+    idt_set_gate(4, (uint32_t)isr4);
+    idt_set_gate(5, (uint32_t)isr5);
+    idt_set_gate(6, (uint32_t)isr6);
+    idt_set_gate(7, (uint32_t)isr7);
+    idt_set_gate(8, (uint32_t)isr8);
+    idt_set_gate(9, (uint32_t)isr9);
     idt_set_gate(10, (uint32_t)isr10);
     idt_set_gate(11, (uint32_t)isr11);
     idt_set_gate(12, (uint32_t)isr12);
@@ -103,6 +119,23 @@ void idt_init(void) {
     idt_set_gate(29, (uint32_t)isr29);
     idt_set_gate(30, (uint32_t)isr30);
     idt_set_gate(31, (uint32_t)isr31);
+    // IRQs after PIC remap: 32..47
+    idt_set_gate(32, (uint32_t)isr32);
+    idt_set_gate(33, (uint32_t)isr33);
+    idt_set_gate(34, (uint32_t)isr34);
+    idt_set_gate(35, (uint32_t)isr35);
+    idt_set_gate(36, (uint32_t)isr36);
+    idt_set_gate(37, (uint32_t)isr37);
+    idt_set_gate(38, (uint32_t)isr38);
+    idt_set_gate(39, (uint32_t)isr39);
+    idt_set_gate(40, (uint32_t)isr40);
+    idt_set_gate(41, (uint32_t)isr41);
+    idt_set_gate(42, (uint32_t)isr42);
+    idt_set_gate(43, (uint32_t)isr43);
+    idt_set_gate(44, (uint32_t)isr44);
+    idt_set_gate(45, (uint32_t)isr45);
+    idt_set_gate(46, (uint32_t)isr46);
+    idt_set_gate(47, (uint32_t)isr47);
 
     lidt(&idt_ptr);
 }

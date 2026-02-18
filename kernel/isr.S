@@ -6,6 +6,10 @@
 .global isr16, isr17, isr18, isr19, isr20, isr21, isr22, isr23
 .global isr24, isr25, isr26, isr27, isr28, isr29, isr30, isr31
 
+.global isr32, isr33, isr34, isr35, isr36, isr37, isr38, isr39
+.global isr40, isr41, isr42, isr43, isr44, isr45, isr46, isr47
+
+
 .extern isr_handler
 
 .macro ISR_NOERR n
@@ -63,11 +67,9 @@ ISR_ERR   11
 ISR_ERR   12
 ISR_ERR   13
 ISR_ERR   14
-
 ISR_NOERR 15
 ISR_NOERR 16
 ISR_ERR   17
-
 ISR_NOERR 18
 ISR_NOERR 19
 ISR_NOERR 20
@@ -82,3 +84,19 @@ ISR_NOERR 28
 ISR_NOERR 29
 ISR_NOERR 30
 ISR_NOERR 31
+ISR_NOERR 32
+ISR_NOERR 33
+ISR_NOERR 34
+ISR_NOERR 35
+ISR_NOERR 36
+ISR_NOERR 37
+ISR_NOERR 38
+ISR_NOERR 39
+ISR_NOERR 40
+ISR_NOERR 41
+ISR_NOERR 42
+ISR_NOERR 43
+ISR_NOERR 44
+ISR_NOERR 45
+ISR_NOERR 46
+ISR_NOERR 47

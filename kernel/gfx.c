@@ -87,27 +87,26 @@ void gfxDrawRect(uint32_t color, uint32_t x, uint32_t y, uint32_t w, uint32_t h)
     uint32_t ofs;
     if (y < gfx.height) {
         ofs = x0 + y * gfx.width;    
-        for (uint32_t i = x0; i < x2; i++) {
+        for (uint32_t i = x0; i <= x2; i++) {
             gfx.framebuffer[ofs++] = color;
         }
     }
     if (y1 < gfx.height) {
         ofs = x0 + y1 * gfx.width;
-        for (uint32_t i = x0; i < x2; i++) {
+        for (uint32_t i = x0; i <= x2; i++) {
             gfx.framebuffer[ofs++] = color;
         }
     }
     if (x < gfx.width) {
         ofs = x + y0 * gfx.width;
-        for (uint32_t i = y0; i < y2; i++) {
+        for (uint32_t i = y0; i <= y2; i++) {
             gfx.framebuffer[ofs] = color;
             ofs += gfx.width;
         }
-    }
-    
+    }    
     if (x1 < gfx.width) {
         ofs = x1 + y0 * gfx.width;
-        for (uint32_t i = y0; i < y2; i++) {
+        for (uint32_t i = y0; i <= y2; i++) {
             gfx.framebuffer[ofs] = color;
             ofs += gfx.width;
         }

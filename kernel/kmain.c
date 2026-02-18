@@ -2,9 +2,9 @@
 
 #include "idt.h"
 #include "serial.h"
-#include "textmode.h"
 #include "io.h"
 #include "vbemodeinfo.h"
+#include "gfx.h"
 
 #define PIC1_CMD   0x20
 #define PIC1_DATA  0x21
@@ -52,17 +52,6 @@ static void pit_init(uint32_t hz) {
     outb(0x40, (uint8_t)((div >> 8) & 0xFF));
 }
 
-static char hex_digit(unsigned v) {
-    return (v < 10) ? ('0' + v) : ('A' + (v - 10));
-}
-
-static inline char high_nibble(unsigned v) {
-    return hex_digit((v >> 4) & 0xF);
-}
-static inline char low_nibble(unsigned v) {
-    return hex_digit(v & 0xF);
-}
-
 static volatile uint32_t ticks = 0;
 
 void isr_handler(registers_t *regs) {
@@ -71,8 +60,7 @@ void isr_handler(registers_t *regs) {
     if (int_no < 32) {
         __asm__ __volatile__("cli");
         serial_print("EXC ");
-        serial_putc(hex_digit((int_no >> 4) & 0xF));
-        serial_putc(hex_digit(int_no & 0xF));
+        serial_putbyte(int_no);
         serial_print("\r\n");
         for (;;) { __asm__ __volatile__("hlt"); }
     }
@@ -81,18 +69,17 @@ void isr_handler(registers_t *regs) {
 
     if (irq == 0) {
         ticks++;
-        if ((ticks % 100) == 0) {
+        /*if ((ticks % 100) == 0) {
             int s = ticks / 100;
             vga_putc(high_nibble(s % 60), 2, 7);
             vga_putc(low_nibble(s % 60), 2, 8);
-        }
+        }*/
         //serial_println("tick");
 
     } else if (irq == 1) {
         uint8_t sc = inb(0x60);
         serial_print("kbd ");
-        serial_putc(hex_digit((sc >> 4) & 0xF));
-        serial_putc(hex_digit(sc & 0xF));
+        serial_putbyte(sc);
         serial_print("\r\n");
     }
 
@@ -132,40 +119,26 @@ static inline void trigger_de(void) {
     );
 }
 
-void put_hex8(uint8_t b) {
-    serial_putc(high_nibble(b));
-    serial_putc(low_nibble(b));
-}
-
-void put_hex16(uint16_t w) {
-    put_hex8((uint8_t)(w >> 8));
-    put_hex8((uint8_t)(w & 255));
-}
-
-void put_hex32(uint32_t d) {
-    put_hex16((uint16_t)(d >> 16));
-    put_hex16((uint16_t)(d & 65535));
-}
-
-void draw_a_rainbow(VbeModeInfo *vbeModeInfo) {
-    uint16_t *fb = (uint16_t*)vbeModeInfo->framebuffer;
-    for (int i = 0; i < 800*600; i++) {
-        fb[i] = i;
-    }
+void setup_irqs() {
+    pic_remap(0x20, 0x28);
+    pit_init(100);          // 100 Hz
+    pic_unmask_irq(0);      // timer
+    pic_unmask_irq(1);      // keyboard
 }
 
 void kmain(VbeModeInfo *vbeModeInfo) {
     serial_init();
-    serial_println("FUCOS BOOT START");
+    serial_println("FucOS booting");
+    gfxInit(vbeModeInfo);
 
     idt_init();
     serial_println("Idt active");
 
     // prove we’re alive
-    vga_disable_cursor();
-    vga_clear();
-    vga_puts("FUCOS", 1, 0);
-    vga_puts("Timer: ", 2, 0);
+    gfxFastFill(0x222266ff, gfxWidth() * gfxHeight());
+    gfxDrawRect(0xffffffff, 32, 32, 256, 256);
+    //vga_puts("FUCOS", 1, 0);
+    //vga_puts("Timer: ", 2, 0);
 
     serial_println("Testing A20");
     if (a20_enabled()) {
@@ -174,23 +147,8 @@ void kmain(VbeModeInfo *vbeModeInfo) {
         serial_println("A20 NOT enabled");
     }
 
-    put_hex16(vbeModeInfo->width);
-    serial_putc('x');
-    put_hex16(vbeModeInfo->height);
-    serial_putc('x');
-    put_hex8(vbeModeInfo->planes);
-    serial_putc('x');
-    put_hex8(vbeModeInfo->bpp);
-    serial_println("");
+    setup_irqs();
 
-    put_hex32(vbeModeInfo->framebuffer);
-
-    draw_a_rainbow(vbeModeInfo);
-
-    pic_remap(0x20, 0x28);
-    pit_init(100);          // 100 Hz
-    pic_unmask_irq(0);      // timer
-    pic_unmask_irq(1);      // keyboard
 
      __asm__ __volatile__("sti");
 

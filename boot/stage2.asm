@@ -84,11 +84,11 @@ setup_vbe:
     jz .pop_and_retry
 
     ; --- CHECK FOR 800x600x32 ---
-    cmp word [mode_info_block + 18], 800
+    cmp word [mode_info_block + 18], 1280
     jne .pop_and_retry
-    cmp word [mode_info_block + 20], 600
+    cmp word [mode_info_block + 20], 1024
     jne .pop_and_retry
-    cmp byte [mode_info_block + 25], 16
+    cmp byte [mode_info_block + 25], 32
     jne .pop_and_retry
     
     ; 4. FOUND IT!

@@ -56,6 +56,7 @@ set(KERNEL_ELF ${BUILD}/kernel.elf)
 set(KERNEL_BIN ${BUILD}/kernel.bin)
 
 add_executable(${KERNEL_TARGET}
+    ${SRC}/kernel/gfx.c
     ${SRC}/kernel/start.S
     ${SRC}/kernel/kmain.c
     ${SRC}/kernel/serial.c
@@ -137,9 +138,9 @@ add_custom_target(run
     COMMAND ${QEMU}
         -machine accel=kvm
         -cpu host
-        -m 128M
+        -m 256M
         -drive format=raw,file=${IMG}
-        -vga cirrus
+        -vga std
         -display sdl
         -serial stdio
     DEPENDS image
@@ -150,7 +151,7 @@ add_custom_target(debug
     COMMAND ${QEMU}
         -machine accel=kvm
         -cpu host
-        -m 128M
+        -m 256M
         -drive format=raw,file=${IMG}
         -vga std
         -display sdl

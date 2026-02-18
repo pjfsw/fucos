@@ -30,3 +30,29 @@ void serial_println(const char* s) {
     serial_print(s);
     serial_print("\r\n");
 }
+
+static char hex_digit(unsigned v) {
+    return (v < 10) ? ('0' + v) : ('A' + (v - 10));
+}
+
+static inline char high_nibble(unsigned v) {
+    return hex_digit((v >> 4) & 0xF);
+}
+static inline char low_nibble(unsigned v) {
+    return hex_digit(v & 0xF);
+}
+
+void serial_putbyte(uint8_t b) {
+    serial_putc(high_nibble(b));
+    serial_putc(low_nibble(b));
+}
+
+void serial_putword(uint16_t w) {
+    serial_putbyte(w >> 8);
+    serial_putbyte(w & 255);
+}
+
+void serial_putdword(uint32_t d) {
+    serial_putword(d >> 16);
+    serial_putword(d & 65535);
+}

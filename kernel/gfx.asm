@@ -21,31 +21,32 @@ gfxBlit32To16:
     shr edx, 2          ; 4 pixels per iteration
 
 .loop_x:
-    movdqu xmm0, [esi]  ; Load 4 pixels (32-bit each)
+    movdqu xmm0, [esi]  ; Load 4 pixels: [B|G|R|A] [B|G|R|A] ...
 
-    ; Extract and align Red: (R >> 8) << 11
+    ; --- BLUE (assuming it's in byte 0) ---
     movdqa xmm1, xmm0
-    pand xmm1, xmm5     ; 00R80000
-    psrld xmm1, 8       ; Shift Red down to correct bits (565)
+    pand xmm1, [mask_b] ; Mask: 0x000000F8
+    psrld xmm1, 3       ; Shift Blue down to bits 0-4
 
-    ; Extract and align Green: (G >> 8) << 5
+    ; --- GREEN (assuming it's in byte 1) ---
     movdqa xmm2, xmm0
-    pand xmm2, xmm6     ; 0000FC00
-    psrld xmm2, 5       ; Shift Green down
+    pand xmm2, [mask_g] ; Mask: 0x0000FC00
+    psrld xmm2, 5       ; Shift Green down to bits 5-10
 
-    ; Extract and align Blue: (B >> 8)
+    ; --- RED (assuming it's in byte 2) ---
     movdqa xmm3, xmm0
-    pand xmm3, xmm7     ; 000000F8
-    psrld xmm3, 3       ; Shift Blue down
+    pand xmm3, [mask_r] ; Mask: 0x00F80000
+    psrld xmm3, 8       ; Shift Red down to bits 11-15
 
-    ; Combine channels
     por xmm1, xmm2
-    por xmm1, xmm3
+    por xmm1, xmm3      ; Combine all: RRRRRGGGGGGBBBBB
 
-    ; Now we have 4 packed pixels in 4 dwords. Squeeze into 4 words.
-    ; This packs [0000RRRR, 0000RRRR, 0000RRRR, 0000RRRR] -> [RRRRRRRR RRRRRRRR]
-    packssdw xmm1, xmm1 
-    movq [edi], xmm1    ; Store 4 pixels (8 bytes) to VRAM
+    ; Trick packssdw by sign-extending the 16-bit values so they don't get clamped!
+    pslld xmm1, 16      ; Shift left 16 bits
+    psrad xmm1, 16      ; Arithmetic shift right 16 bits (sign-extends)
+
+    packssdw xmm1, xmm1 ; Now it packs perfectly!
+    movq [edi], xmm1    ; Store 8 bytes (4 pixels)
 
     add esi, 16
     add edi, 8
@@ -66,6 +67,7 @@ gfxBlit32To16:
 
 section .data
 align 16
-    mask_r times 4 dd 0x00F80000
-    mask_g times 4 dd 0x0000FC00
-    mask_b times 4 dd 0x000000F8
+    ; These masks isolate the top 5 or 6 bits of each 8-bit channel
+    mask_b times 4 dd 0x000000F8  ; Blue in first byte
+    mask_g times 4 dd 0x0000FC00  ; Green in second byte
+    mask_r times 4 dd 0x00F80000  ; Red in third byte

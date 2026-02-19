@@ -143,7 +143,7 @@ void kmain(VbeModeInfo *vbeModeInfo) {
         serial_println("A20 NOT enabled");
     }
 
-    gfxFastFill(0x222266ff, gfxWidth() * gfxHeight());
+    gfxFastFill(0xff00ffff, gfxWidth() * gfxHeight());
     gfxDrawRect(0xffffffff, 32, 32, 256, 256);
     gfxRender();
 

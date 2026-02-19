@@ -1,4 +1,6 @@
 global gfxBlit32To16
+global gfxBlit32To32
+
 gfxBlit32To16:
     push ebp
     mov ebp, esp
@@ -55,6 +57,45 @@ gfxBlit32To16:
 
     pop edi
     add edi, [ebp+24]   ; Correctly jump by hardware PITCH
+    dec ebx
+    jnz .loop_y
+
+    pop ebx
+    pop esi
+    pop edi
+    mov esp, ebp
+    pop ebp
+    ret
+
+gfxBlit32To32:
+    push ebp
+    mov ebp, esp
+    push edi
+    push esi
+    push ebx
+
+    mov esi, [ebp+8]    ; src (32-bit Soft Buffer)
+    mov edi, [ebp+12]   ; dst (32-bit Hardware)
+    mov ebx, [ebp+20]   ; height
+
+.loop_y:
+    push edi            ; Save start of hardware line
+    mov edx, [ebp+16]   ; width in pixels
+    shr edx, 2          ; 4 pixels per iteration (16 bytes)
+
+.loop_x:
+    movdqu xmm0, [esi]  ; Load 4 pixels (16 bytes) from RAM
+    
+    ; We don't need to pack or shift! Just write it straight to VRAM.
+    movdqu [edi], xmm0  ; Store 4 pixels (16 bytes) to Hardware
+
+    add esi, 16         ; Advance source by 16 bytes
+    add edi, 16         ; Advance dest by 16 bytes
+    dec edx
+    jnz .loop_x
+
+    pop edi
+    add edi, [ebp+24]   ; Jump by hardware PITCH (Critical!)
     dec ebx
     jnz .loop_y
 

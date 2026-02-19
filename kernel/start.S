@@ -18,9 +18,10 @@ kstart:
 
 /* --- ADD THIS FUNCTION --- */
 enable_sse:
+enable_sse:
     /* 1. Update CR0 */
     movl %cr0, %eax
-    andl $0xFFFB, %eax      /* Clear Coprocessor Emulation (EM) bit (Bit 2) */
+    andl $0xFFFFFFFB, %eax  /* Clear Coprocessor Emulation (EM) bit (Bit 2) SAFELY */
     orl  $0x2, %eax         /* Set Monitor Coprocessor (MP) bit (Bit 1) */
     movl %eax, %cr0
 

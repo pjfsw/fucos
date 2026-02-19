@@ -2,9 +2,6 @@
 
 #include "vbemodeinfo.h"
 
-#define GFX_WIDTH 1280
-#define GFX_HEIGHT 1024
-
 void gfxInit(VbeModeInfo *vbeModeInfo);
 
 uint32_t gfxWidth();

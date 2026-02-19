@@ -2,17 +2,20 @@
 #include "gfx.h"
 #include "vbemodeinfo.h"
 #include "serial.h"
+#include "mtrr.h"
 
 typedef struct {
     uint32_t *framebuffer;
     uint32_t width;
     uint32_t height;
-    uint32_t bytesPerPixel;
-    uint16_t *target_fb;
+    uint32_t bpp;
+    uint16_t *target_fb_16;
+    uint32_t *target_fb_32;
     uint32_t pitch;
 } Gfx;
 
 extern void gfxBlit32To16(uint32_t* src, uint16_t* dst, uint32_t width, uint32_t height, uint32_t dst_pitch);
+extern void gfxBlit32To32(uint32_t* src, uint32_t* dst, uint32_t width, uint32_t height, uint32_t dst_pitch);
 
 static Gfx gfx;
 
@@ -31,11 +34,18 @@ void gfxInit(VbeModeInfo *vbeModeInfo) {
     serial_println("");
 
     gfx.framebuffer = (uint32_t*)0x1000000; // HACK!!!! Video at 16 MB
-    gfx.target_fb = (uint16_t*)vbeModeInfo->framebuffer;
+    gfx.target_fb_16 = (uint16_t*)vbeModeInfo->framebuffer;
+    gfx.target_fb_32 = (uint32_t*)vbeModeInfo->framebuffer;
     gfx.width = vbeModeInfo->width;
     gfx.height = vbeModeInfo->height;
-    gfx.bytesPerPixel = vbeModeInfo->bpp >> 8;
+    gfx.bpp = vbeModeInfo->bpp;
     gfx.pitch = vbeModeInfo->bytes_per_scanline;
+
+    // Next power of two after 960,000 bytes is 1MB (0x100000)
+    uint32_t wc_size = 0x100000;
+
+    // Enable Write-Combining for the hardware framebuffer
+    mtrr_set_wc(vbeModeInfo->framebuffer, wc_size);
 }
 
 uint32_t *gfxGetFramebuffer() {
@@ -50,8 +60,8 @@ uint32_t gfxHeight() {
     return gfx.height;
 }
 
-uint32_t gfxBytesPerPixel() {
-    return gfx.bytesPerPixel;
+uint32_t gfxBitsPerPixel() {
+    return gfx.bpp;
 }
 
 void gfxFastFill(uint32_t color, uint32_t pixel_count) {
@@ -121,5 +131,13 @@ void gfxDrawRect(uint32_t color, uint32_t x, uint32_t y, uint32_t w, uint32_t h)
 
 void gfxRender() {
     serial_println("Render");
-    gfxBlit32To16(gfx.framebuffer, gfx.target_fb, gfx.width, gfx.height, gfx.pitch);
+    if (gfx.bpp == 32) {
+        gfxBlit32To32(gfx.framebuffer, gfx.target_fb_32, gfx.width, gfx.height, gfx.pitch);
+    } else if (gfx.bpp == 16) {
+        gfxBlit32To16(gfx.framebuffer, gfx.target_fb_16, gfx.width, gfx.height, gfx.pitch);
+    } else {
+        serial_print("Render: Unsupported bpp: ");
+        serial_putdword(gfx.bpp);
+        serial_println("");
+    }
 }

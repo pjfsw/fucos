@@ -5,6 +5,7 @@
 #include "io.h"
 #include "vbemodeinfo.h"
 #include "gfx.h"
+#include "view.h"
 
 #define PIC1_CMD   0x20
 #define PIC1_DATA  0x21
@@ -54,6 +55,8 @@ static void pit_init(uint32_t hz) {
 
 static volatile uint32_t ticks = 0;
 
+static volatile bool redraw = false;
+
 void isr_handler(registers_t *regs) {
     uint32_t int_no = regs->int_no;
 
@@ -69,11 +72,12 @@ void isr_handler(registers_t *regs) {
 
     if (irq == 0) {
         ticks++;
-        /*if ((ticks % 100) == 0) {
-            int s = ticks / 100;
+        if ((ticks % 2) == 0) {
+        /*    int s = ticks / 100;
             vga_putc(high_nibble(s % 60), 2, 7);
-            vga_putc(low_nibble(s % 60), 2, 8);
-        }*/
+            vga_putc(low_nibble(s % 60), 2, 8);*/
+            redraw = true;
+        }
         //serial_println("tick");
 
     } else if (irq == 1) {
@@ -126,6 +130,28 @@ void setup_irqs() {
     pic_unmask_irq(1);      // keyboard
 }
 
+static uint32_t winX;
+static uint32_t winY;
+void drawSomeFancyGraphics() {
+    uint32_t *viewfb = (uint32_t*)0x01800000; // HACK
+    gfxFastFill(gfxGetFramebuffer(), 0xff1111ff, gfxWidth() * gfxHeight());
+    View v = {
+        .x = (winX >> 2) << 2,
+        .y = winY,
+        .w = 512,
+        .h = 512,
+        .dirty = true,
+        .scroll_y = 0,
+        .virtual_h = 1024,
+        .framebuffer = viewfb
+    };
+    gfxFastFill(viewfb, 0xffff7711, v.w * v.virtual_h);
+    gfxDrawRect(&v, 0xffffffff, 32, 32, 256, 256);
+    gfxRenderView(&v);    
+    winX = (winX + 4) % 256;
+    winY = (winY + 1) % 64;
+}
+
 void kmain(VbeModeInfo *vbeModeInfo) {
     serial_init();
     serial_println("FucOS booting");
@@ -143,14 +169,17 @@ void kmain(VbeModeInfo *vbeModeInfo) {
         serial_println("A20 NOT enabled");
     }
 
-    gfxFastFill(0xff00ffff, gfxWidth() * gfxHeight());
-    gfxDrawRect(0xffffffff, 32, 32, 256, 256);
-    gfxRender();
-
     setup_irqs();
 
-
      __asm__ __volatile__("sti");
+
+    while(true) {
+        if (redraw) {
+            redraw = false;
+            drawSomeFancyGraphics();
+            gfxRender();
+        }
+    }
 
     for (;;) { __asm__ __volatile__("hlt"); }
 }

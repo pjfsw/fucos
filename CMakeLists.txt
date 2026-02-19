@@ -83,6 +83,7 @@ set_target_properties(${KERNEL_TARGET} PROPERTIES
 
 target_compile_options(${KERNEL_TARGET} PRIVATE
     -m32
+    -mstackrealign    
     -ffreestanding
     -fno-pic
     -fno-pie

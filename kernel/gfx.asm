@@ -87,7 +87,9 @@ gfxBlit32To32:
     movdqu xmm0, [esi]  ; Load 4 pixels (16 bytes) from RAM
     
     ; We don't need to pack or shift! Just write it straight to VRAM.
-    movdqu [edi], xmm0  ; Store 4 pixels (16 bytes) to Hardware
+    ;movdqu [edi], xmm0  ; Store 4 pixels (16 bytes) to Hardware
+    movntdq [edi], xmm0  ; Store 4 pixels (16 bytes) to Hardware - fast uncached version
+                         ; Address must be aligned 16 bytes or crash!!
 
     add esi, 16         ; Advance source by 16 bytes
     add edi, 16         ; Advance dest by 16 bytes

@@ -6,7 +6,8 @@
 kstart:
     cli
     movl $stack_top, %esp
-
+    andl $0xFFFFFFF0, %esp  /* <--- Add this! Forces 16-byte alignment */
+    
     call enable_sse         /* <--- ADD THIS CALL HERE */
     
     push %ebx

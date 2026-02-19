@@ -55,8 +55,16 @@ set(KERNEL_TARGET kernel)
 set(KERNEL_ELF ${BUILD}/kernel.elf)
 set(KERNEL_BIN ${BUILD}/kernel.bin)
 
+set(GFX_OBJ ${BUILD}/gfx.o)
+
+add_custom_command(
+    OUTPUT ${GFX_OBJ}
+    COMMAND ${NASM} -f elf32 ${SRC}/kernel/gfx.asm -o ${GFX_OBJ}
+    DEPENDS ${SRC}/kernel/gfx.asm
+)
 add_executable(${KERNEL_TARGET}
     ${SRC}/kernel/gfx.c
+    ${GFX_OBJ}
     ${SRC}/kernel/start.S
     ${SRC}/kernel/kmain.c
     ${SRC}/kernel/serial.c

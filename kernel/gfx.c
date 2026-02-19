@@ -8,7 +8,11 @@ typedef struct {
     uint32_t width;
     uint32_t height;
     uint32_t bytesPerPixel;
+    uint16_t *target_fb;
+    uint32_t pitch;
 } Gfx;
+
+extern void gfxBlit32To16(uint32_t* src, uint16_t* dst, uint32_t width, uint32_t height, uint32_t dst_pitch);
 
 static Gfx gfx;
 
@@ -26,10 +30,12 @@ void gfxInit(VbeModeInfo *vbeModeInfo) {
     serial_putdword(vbeModeInfo->framebuffer);
     serial_println("");
 
-    gfx.framebuffer = (uint32_t*)vbeModeInfo->framebuffer;
+    gfx.framebuffer = (uint32_t*)0x1000000; // HACK!!!! Video at 16 MB
+    gfx.target_fb = (uint16_t*)vbeModeInfo->framebuffer;
     gfx.width = vbeModeInfo->width;
     gfx.height = vbeModeInfo->height;
     gfx.bytesPerPixel = vbeModeInfo->bpp >> 8;
+    gfx.pitch = vbeModeInfo->bytes_per_scanline;
 }
 
 uint32_t *gfxGetFramebuffer() {
@@ -111,4 +117,9 @@ void gfxDrawRect(uint32_t color, uint32_t x, uint32_t y, uint32_t w, uint32_t h)
             ofs += gfx.width;
         }
     }
+}
+
+void gfxRender() {
+    serial_println("Render");
+    gfxBlit32To16(gfx.framebuffer, gfx.target_fb, gfx.width, gfx.height, gfx.pitch);
 }

@@ -136,18 +136,16 @@ void kmain(VbeModeInfo *vbeModeInfo) {
     idt_init();
     serial_println("Idt active");
 
-    // prove we’re alive
-    gfxFastFill(0x222266ff, gfxWidth() * gfxHeight());
-    gfxDrawRect(0xffffffff, 32, 32, 256, 256);
-    //vga_puts("FUCOS", 1, 0);
-    //vga_puts("Timer: ", 2, 0);
-
     serial_println("Testing A20");
     if (a20_enabled()) {
         serial_println("A20 enabled");
     } else {
         serial_println("A20 NOT enabled");
     }
+
+    gfxFastFill(0x222266ff, gfxWidth() * gfxHeight());
+    gfxDrawRect(0xffffffff, 32, 32, 256, 256);
+    gfxRender();
 
     setup_irqs();
 

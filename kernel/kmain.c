@@ -129,6 +129,8 @@ void setup_irqs() {
 void kmain(VbeModeInfo *vbeModeInfo) {
     serial_init();
     serial_println("FucOS booting");
+    serial_putdword((uint32_t)kmain);
+    serial_println("");
     gfxInit(vbeModeInfo);
 
     idt_init();

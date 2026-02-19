@@ -3,7 +3,7 @@ org 0x8000
 
 KERNEL_LOAD     equ 0x00020000
 KERNEL_LBA      equ 10
-KERNEL_SECTORS  equ 64 ;  32
+KERNEL_SECTORS  equ 128 ;  64KB
 
 start:
     ; Disable interrupts and set memory segments to start of memory
@@ -158,6 +158,13 @@ pm_entry:
     mov fs,ax
     mov gs,ax
     mov ss,ax
+
+; ---- NEW: Copy Kernel from 0x20000 to 0x100000 ----
+    ; We move (KERNEL_SECTORS * 512) bytes
+    mov esi, 0x20000          ; Source: where BIOS loaded it
+    mov edi, 0x100000         ; Destination: 1MB mark
+    mov ecx, (KERNEL_SECTORS * 512) / 4   ; Count: (Sectors * 512 bytes) / 4 (for dwords)
+    rep movsd                 ; Perform the copy
 
     mov esp,0x0009F000
 

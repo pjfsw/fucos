@@ -2,7 +2,7 @@ ENTRY(kstart)
 
 SECTIONS
 {
-  . = 0x00020000;
+  . = 0x00100000;
 
   .text : {
     *(.text.start)

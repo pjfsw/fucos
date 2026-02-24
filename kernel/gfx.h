@@ -3,6 +3,9 @@
 #include "vbemodeinfo.h"
 #include "view.h"
 
+#define MEM_FB    0x01000000
+#define VIEW_FB   0x01800000
+#define FONT_ADDR 0x02000000
 void gfxInit(VbeModeInfo *vbeModeInfo);
 
 uint32_t gfxWidth();

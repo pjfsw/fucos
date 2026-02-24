@@ -1,20 +1,22 @@
 #include <stdint.h>
 
-#include "idt.h"
-#include "serial.h"
-#include "io.h"
-#include "vbemodeinfo.h"
+#include "font.h"
 #include "gfx.h"
+#include "idt.h"
+#include "io.h"
+#include "serial.h"
+#include "vbemodeinfo.h"
 #include "view.h"
 
-#define PIC1_CMD   0x20
-#define PIC1_DATA  0x21
-#define PIC2_CMD   0xA0
-#define PIC2_DATA  0xA1
-#define PIC_EOI    0x20
+#define PIC1_CMD 0x20
+#define PIC1_DATA 0x21
+#define PIC2_CMD 0xA0
+#define PIC2_DATA 0xA1
+#define PIC_EOI 0x20
 
 static void pic_send_eoi(uint8_t irq) {
-    if (irq >= 8) outb(PIC2_CMD, PIC_EOI);
+    if (irq >= 8)
+        outb(PIC2_CMD, PIC_EOI);
     outb(PIC1_CMD, PIC_EOI);
 }
 
@@ -40,7 +42,8 @@ static void pic_remap(uint8_t off1, uint8_t off2) {
 
 static void pic_unmask_irq(uint8_t irq) {
     uint16_t port = (irq < 8) ? PIC1_DATA : PIC2_DATA;
-    if (irq >= 8) irq -= 8;
+    if (irq >= 8)
+        irq -= 8;
     uint8_t mask = inb(port);
     mask &= (uint8_t)~(1u << irq);
     outb(port, mask);
@@ -48,7 +51,7 @@ static void pic_unmask_irq(uint8_t irq) {
 
 static void pit_init(uint32_t hz) {
     uint32_t div = 1193182u / hz;
-    outb(0x43, 0x36);              // channel 0, lobyte/hibyte, mode 3
+    outb(0x43, 0x36);  // channel 0, lobyte/hibyte, mode 3
     outb(0x40, (uint8_t)(div & 0xFF));
     outb(0x40, (uint8_t)((div >> 8) & 0xFF));
 }
@@ -65,7 +68,9 @@ void isr_handler(registers_t *regs) {
         serial_print("EXC ");
         serial_putbyte(int_no);
         serial_print("\r\n");
-        for (;;) { __asm__ __volatile__("hlt"); }
+        for (;;) {
+            __asm__ __volatile__("hlt");
+        }
     }
 
     uint8_t irq = (uint8_t)(int_no - 32);
@@ -73,7 +78,7 @@ void isr_handler(registers_t *regs) {
     if (irq == 0) {
         ticks++;
         if ((ticks % 2) == 0) {
-        /*    int s = ticks / 100;
+            /*    int s = ticks / 100;
             vga_putc(high_nibble(s % 60), 2, 7);
             vga_putc(low_nibble(s % 60), 2, 8);*/
             redraw = true;
@@ -90,26 +95,24 @@ void isr_handler(registers_t *regs) {
     pic_send_eoi(irq);
 }
 
-int a20_enabled(void)
-{
-    volatile uint8_t *low  = (uint8_t*)0x000500;
-    volatile uint8_t *high = (uint8_t*)0x100500; // 1 MiB
+int a20_enabled(void) {
+    volatile uint8_t *low = (uint8_t *)0x000500;
+    volatile uint8_t *high = (uint8_t *)0x100500;  // 1 MiB
 
-    uint8_t old_low  = *low;
+    uint8_t old_low = *low;
     uint8_t old_high = *high;
 
-    *low  = 0xAA;
+    *low = 0xAA;
     *high = 0x55;
 
     int enabled = (*low != *high);
 
     // restore memory
-    *low  = old_low;
+    *low = old_low;
     *high = old_high;
 
     return enabled;
 }
-
 
 static inline void trigger_de(void) {
     __asm__ volatile(
@@ -119,37 +122,35 @@ static inline void trigger_de(void) {
         "div %%ecx        \n"  // => #DE
         :
         :
-        : "eax", "ecx", "edx"
-    );
+        : "eax", "ecx", "edx");
 }
 
 void setup_irqs() {
     pic_remap(0x20, 0x28);
-    pit_init(100);          // 100 Hz
-    pic_unmask_irq(0);      // timer
-    pic_unmask_irq(1);      // keyboard
+    pit_init(100);      // 100 Hz
+    pic_unmask_irq(0);  // timer
+    pic_unmask_irq(1);  // keyboard
 }
 
 static uint32_t winX;
 static uint32_t winY;
-void drawSomeFancyGraphics() {
-    uint32_t *viewfb = (uint32_t*)0x01800000; // HACK
+void drawSomeFancyGraphics(Font *font) {
+    uint32_t *viewfb = (uint32_t *)VIEW_FB;  // HACK
     gfxFastFill(gfxGetFramebuffer(), 0xff1111ff, gfxWidth() * gfxHeight());
-    View v = {
-        .x = (winX >> 2) << 2,
+    View v = {.x = (winX >> 2) << 2,
         .y = winY,
         .w = 512,
         .h = 512,
         .dirty = true,
         .scroll_y = 0,
         .virtual_h = 1024,
-        .framebuffer = viewfb
-    };
+        .framebuffer = viewfb};
     gfxFastFill(viewfb, 0xffff7711, v.w * v.virtual_h);
     gfxDrawRect(&v, 0xffffffff, 32, 32, 256, 256);
-    gfxRenderView(&v);    
-    winX = (winX + 4) % 256;
-    winY = (winY + 1) % 64;
+    print(font, &v, "Hello world", 8,8, 0xffffffff);
+    gfxRenderView(&v);
+    //winX = (winX + 4) % 256;
+    //winY = (winY + 1) % 64;
 }
 
 void kmain(VbeModeInfo *vbeModeInfo) {
@@ -171,15 +172,21 @@ void kmain(VbeModeInfo *vbeModeInfo) {
 
     setup_irqs();
 
-     __asm__ __volatile__("sti");
+    __asm__ __volatile__("sti");
 
-    while(true) {
+    Font font;
+    font.data = (uint32_t*)FONT_ADDR;
+    fontInit(&font);
+
+    while (true) {
         if (redraw) {
             redraw = false;
-            drawSomeFancyGraphics();
+            drawSomeFancyGraphics(&font);
             gfxRender();
         }
     }
 
-    for (;;) { __asm__ __volatile__("hlt"); }
+    for (;;) {
+        __asm__ __volatile__("hlt");
+    }
 }

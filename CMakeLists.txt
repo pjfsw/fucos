@@ -65,6 +65,7 @@ add_custom_command(
 add_executable(${KERNEL_TARGET}
     ${SRC}/kernel/gfx.c
     ${GFX_OBJ}
+    ${SRC}/kernel/font.c
     ${SRC}/kernel/start.S
     ${SRC}/kernel/kmain.c
     ${SRC}/kernel/serial.c

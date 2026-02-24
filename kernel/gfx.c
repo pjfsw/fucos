@@ -33,7 +33,7 @@ void gfxInit(VbeModeInfo *vbeModeInfo) {
     serial_putdword(vbeModeInfo->framebuffer);
     serial_println("");
 
-    gfx.framebuffer = (uint32_t*)0x1000000; // HACK!!!! Video at 16 MB
+    gfx.framebuffer = (uint32_t*)MEM_FB; // HACK!!!! Video at 16 MB
     gfx.target_fb_16 = (uint16_t*)vbeModeInfo->framebuffer;
     gfx.target_fb_32 = (uint32_t*)vbeModeInfo->framebuffer;
     gfx.width = vbeModeInfo->width;

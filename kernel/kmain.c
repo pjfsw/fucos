@@ -8,6 +8,7 @@
 #include "vbemodeinfo.h"
 #include "sysinfo.h"
 #include "view.h"
+#include "allocator.h"
 
 #define PIC1_CMD 0x20
 #define PIC1_DATA 0x21
@@ -133,25 +134,20 @@ void setup_irqs() {
     pic_unmask_irq(1);  // keyboard
 }
 
-static uint32_t winX;
-static uint32_t winY;
-void drawSomeFancyGraphics(Font *font) {
-    uint32_t *viewfb = (uint32_t *)VIEW_FB;  // HACK
+void createWindow(View *v) {
+    uint32_t w = 512;
+    uint32_t h = 512;
+    uint32_t virtual_h = 1024;
+    gfxCreateView(32, 32, w, h, virtual_h, v);
+}
+
+void drawSomeFancyGraphics(View *v, Font *font) {
+    v->dirty = true;
     gfxFastFill(gfxGetFramebuffer(), 0xff1111ff, gfxWidth() * gfxHeight());
-    View v = {.x = (winX >> 2) << 2,
-        .y = winY,
-        .w = 512,
-        .h = 512,
-        .dirty = true,
-        .scroll_y = 0,
-        .virtual_h = 1024,
-        .framebuffer = viewfb};
-    gfxFastFill(viewfb, 0xffff7711, v.w * v.virtual_h);
-    gfxDrawRect(&v, 0xffffffff, 32, 32, 256, 256);
-    print(font, &v, "Hello world", 8,8, 0xffffffff);
-    gfxRenderView(&v);
-    //winX = (winX + 4) % 256;
-    //winY = (winY + 1) % 64;
+    gfxClearView(v, 0xffff7711);
+    gfxDrawRect(v, 0xffffffff, 32, 32, 256, 256);
+    print(font, v, "Hello world", 8,8, 0xffffffff);
+    gfxRenderView(v);
 }
 
 void kmain(SysInfo *sysInfo) {
@@ -159,16 +155,7 @@ void kmain(SysInfo *sysInfo) {
     serial_println("FucOS booting");
     serial_putdword((uint32_t)kmain);
     serial_println("");
-    serial_println("Memory map:");
-    for (int i = 0 ; i < sysInfo->memoryMap.e820_count; i++) {
-        E820Entry *entry = &sysInfo->memoryMap.e820[i];
-        if (entry->type == 1) {
-            serial_putdword(entry->base);
-            serial_putc(' ');
-            serial_putdword(entry->length);
-            serial_println("");
-        }
-    }
+    allocator_init(&sysInfo->memoryMap);
     gfxInit(&sysInfo->vbeModeInfo);
 
     idt_init();
@@ -186,13 +173,14 @@ void kmain(SysInfo *sysInfo) {
     __asm__ __volatile__("sti");
 
     Font font;
-    font.data = (uint32_t*)FONT_ADDR;
     fontInit(&font);
 
+    View v;
+    createWindow(&v);
     while (true) {
         if (redraw) {
             redraw = false;
-            drawSomeFancyGraphics(&font);
+            drawSomeFancyGraphics(&v, &font);
             gfxRender();
         }
     }

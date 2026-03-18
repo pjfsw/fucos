@@ -1,4 +1,5 @@
 #include "font.h"
+#include "allocator.h"
 
 /**
  * Unpacks a 1-bit font into an 8-bit per pixel array.
@@ -32,6 +33,7 @@ static const unsigned char packed_font_data[] = {
 };
 
 void fontInit(Font *font) {
+    font->data = allocate(FONT_WIDTH * FONT_HEIGHT * FONT_CHARS * 4);
     unpack_font_1bit_to_8bit(packed_font_data, font->data);
 }
 

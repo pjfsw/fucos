@@ -63,6 +63,7 @@ add_custom_command(
     DEPENDS ${SRC}/kernel/gfx.asm
 )
 add_executable(${KERNEL_TARGET}
+    ${SRC}/kernel/allocator.c
     ${SRC}/kernel/gfx.c
     ${GFX_OBJ}
     ${SRC}/kernel/font.c

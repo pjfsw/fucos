@@ -3,6 +3,7 @@
 #include "vbemodeinfo.h"
 #include "serial.h"
 #include "mtrr.h"
+#include "allocator.h"
 
 typedef struct {
     uint32_t *framebuffer;
@@ -33,7 +34,6 @@ void gfxInit(VbeModeInfo *vbeModeInfo) {
     serial_putdword(vbeModeInfo->framebuffer);
     serial_println("");
 
-    gfx.framebuffer = (uint32_t*)MEM_FB; // HACK!!!! Video at 16 MB
     gfx.target_fb_16 = (uint16_t*)vbeModeInfo->framebuffer;
     gfx.target_fb_32 = (uint32_t*)vbeModeInfo->framebuffer;
     gfx.width = vbeModeInfo->width;
@@ -41,8 +41,16 @@ void gfxInit(VbeModeInfo *vbeModeInfo) {
     gfx.bpp = vbeModeInfo->bpp;
     gfx.pitch = vbeModeInfo->bytes_per_scanline;
 
-    // Next power of two after 960,000 bytes is 1MB (0x100000)
+    uint32_t needed_size = gfx.width * gfx.height * 4;
+
+    // Ensure we allocate enough for the Write-Combining MTRR (usually needs power of 2)
+    // and that it covers the whole screen
     uint32_t wc_size = 0x100000;
+    while (wc_size < needed_size) {
+        wc_size <<= 1;
+    }
+
+    gfx.framebuffer = allocate(wc_size);
 
     // Enable Write-Combining for the hardware framebuffer
     mtrr_set_wc(vbeModeInfo->framebuffer, wc_size);
@@ -200,4 +208,20 @@ void gfxRender() {
         serial_putdword(gfx.bpp);
         serial_println("");
     }
+}
+
+void gfxCreateView(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t virtual_h, View *target) {
+    uint32_t *viewfb = allocate(w*virtual_h*4);
+    target->x = (x >> 2) << 2;
+    target->y = y;
+    target->w = w;
+    target->h = h;
+    target->virtual_h = virtual_h;
+    target->framebuffer = viewfb;
+    target->dirty = true;
+    target->scroll_y = 0;
+}
+
+void gfxClearView(View *view, uint32_t color) {
+    gfxFastFill(view->framebuffer, color, view->w * view->virtual_h);
 }

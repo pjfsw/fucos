@@ -1,9 +1,13 @@
 bits 16
 org 0x8000
 
-KERNEL_LOAD     equ 0x00020000
-KERNEL_LBA      equ 10
-KERNEL_SECTORS  equ 128 ;  64KB
+section .text
+
+KERNEL_LOAD           equ 0x00020000
+TARGET_KERNEL_ADDRESS equ 0x00100000
+KERNEL_LBA            equ 10
+KERNEL_SECTORS        equ 128 ;  64KB
+
 
 start:
     ; Disable interrupts and set memory segments to start of memory
@@ -139,6 +143,16 @@ load_kernel:
     mov ah, 0x42
     int 0x13
     ret
+; -------- Disk Address Packet --------
+dap:
+    db 0x10
+    db 0
+dap_sector_count: dw 0
+dap_offset:       dw 0
+dap_segment:      dw 0
+dap_lba:          dd 0
+                  dd 0
+
 
 enable_a20:
     in   al, 0x92
@@ -161,8 +175,8 @@ pm_entry:
 
 ; ---- NEW: Copy Kernel from 0x20000 to 0x100000 ----
     ; We move (KERNEL_SECTORS * 512) bytes
-    mov esi, 0x20000          ; Source: where BIOS loaded it
-    mov edi, 0x100000         ; Destination: 1MB mark
+    mov esi, 0x20000                ; Source: where BIOS loaded it
+    mov edi, TARGET_KERNEL_ADDRESS  ; Destination: 1MB mark
     mov ecx, (KERNEL_SECTORS * 512) / 4   ; Count: (Sectors * 512 bytes) / 4 (for dwords)
     rep movsd                 ; Perform the copy
 
@@ -172,7 +186,7 @@ pm_entry:
     ; Since ES was 0 and ORG was 0x8000, the address is just the label
     mov ebx, mode_info_block 
 
-    jmp KERNEL_LOAD
+    jmp TARGET_KERNEL_ADDRESS
 
 ; ----------------------------------------------------
 ; back to 16-bit data definitions
@@ -198,15 +212,8 @@ gdt_descriptor:
     dw gdt_descriptor - gdt - 1
     dd gdt
 
-; -------- Disk Address Packet --------
-dap:
-    db 0x10
-    db 0
-dap_sector_count: dw 0
-dap_offset:       dw 0
-dap_segment:      dw 0
-dap_lba:          dd 0
-                  dd 0
-vbe_info_block:  times 512 db 0 ; Reserve 512 bytes for VBE Info
-mode_info_block: times 256 db 0    ; Reserve 256 bytes for Mode Info
-vbe_lfb_ptr:     dd 1          ; To store the Linear Framebuffer address
+section .bss
+
+vbe_info_block  resb 512; Reserve 512 bytes for VBE Info
+mode_info_block resb 256 ; Reserve 256 bytes for Mode Info
+vbe_lfb_ptr:    resd 1   ; To store the Linear Framebuffer address

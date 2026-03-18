@@ -8,7 +8,6 @@ TARGET_KERNEL_ADDRESS equ 0x00100000
 KERNEL_LBA            equ 10
 KERNEL_SECTORS        equ 128 ;  64KB
 
-
 start:
     ; Disable interrupts and set memory segments to start of memory
     cli
@@ -17,21 +16,9 @@ start:
     mov es, ax
     sti
 
-    ; ---- show stage2 running ----
-    mov ah,0x0E
-    mov al,'S'
-    int 0x10
-
     call load_kernel
-    jc disk_fail
-
-    mov ah,0x0E
-    mov al,'J'
-    int 0x10
-
     call setup_vbe
     call enable_a20
-
 
     ; ---- switch to protected mode ----
     cli
@@ -41,9 +28,58 @@ start:
     or eax, 1
     mov cr0, eax
 
-    jmp 0x08:pm_entry
+    jmp 0x08:protected_mode_entry
 
+; #######################################
+; LOAD THE KERNEL
+; #######################################
+load_kernel:
+    mov ah,0x0E
+    mov al,'K'
+    int 0x10
+
+    mov ax, (KERNEL_LOAD >> 4)
+    mov es, ax
+    xor bx, bx
+
+    mov word [dap_sector_count], KERNEL_SECTORS
+    mov word [dap_offset], bx
+    mov word [dap_segment], es
+    mov dword [dap_lba], KERNEL_LBA
+
+    mov dl, 0x80
+    mov si, dap
+    mov ah, 0x42
+    int 0x13
+    jc disk_fail
+    ret
+disk_fail:
+    mov ah,0x0E
+    mov al,'!'
+    int 0x10
+.hang:
+    cli
+    hlt
+    jmp .hang
+
+; -------- Disk Address Packet --------
+dap:
+    db 0x10
+    db 0
+dap_sector_count: dw 0
+dap_offset:       dw 0
+dap_segment:      dw 0
+dap_lba:          dd 0
+                  dd 0
+
+; #######################################
+; SETUP VBE (VESA BIOS EXTENSIONS)
+; #######################################
 setup_vbe:
+    mov ah,0x0E
+    mov al,'V'
+    int 0x10    
+
     ; 1. Get VBE Controller Info
     mov di, vbe_info_block
     mov dword [di], "VBE2"      ; Set signature BEFORE calling 4F00h
@@ -113,12 +149,11 @@ setup_vbe:
     pop cx
     pop si
     jmp .next_mode
-
 .vbe_failed:
-    mov al, 'V'
+    mov al, '!'
     jmp .error_print
 .mode_not_found:
-    mov al, 'X'
+    mov al, 'M'
 .error_print:
     mov ah, 0x0E
     int 0x10
@@ -127,33 +162,9 @@ setup_vbe:
     hlt
     jmp .hang
 
-load_kernel:
-    ; ---- load kernel ----
-    mov ax, (KERNEL_LOAD >> 4)
-    mov es, ax
-    xor bx, bx
-
-    mov word [dap_sector_count], KERNEL_SECTORS
-    mov word [dap_offset], bx
-    mov word [dap_segment], es
-    mov dword [dap_lba], KERNEL_LBA
-
-    mov dl, 0x80
-    mov si, dap
-    mov ah, 0x42
-    int 0x13
-    ret
-; -------- Disk Address Packet --------
-dap:
-    db 0x10
-    db 0
-dap_sector_count: dw 0
-dap_offset:       dw 0
-dap_segment:      dw 0
-dap_lba:          dd 0
-                  dd 0
-
-
+; #######################################
+; Enable A20
+; #######################################
 enable_a20:
     in   al, 0x92
     or   al, 00000010b      ; set A20 enable bit
@@ -161,11 +172,21 @@ enable_a20:
     out  0x92, al
     ret    
 
-; ----------------------------------------------------
+; -------- GDT --------
+gdt:
+    dq 0x0000000000000000
+    dq 0x00CF9A000000FFFF
+    dq 0x00CF92000000FFFF
+
+gdt_descriptor:
+    dw gdt_descriptor - gdt - 1
+    dd gdt
+
+; #######################################
 ; 32-bit protected mode
-; ----------------------------------------------------
+; #######################################
 bits 32
-pm_entry:
+protected_mode_entry:
     mov ax,0x10
     mov ds,ax
     mov es,ax
@@ -188,32 +209,15 @@ pm_entry:
 
     jmp TARGET_KERNEL_ADDRESS
 
-; ----------------------------------------------------
-; back to 16-bit data definitions
-; ----------------------------------------------------
+; #######################################
+; 16 bit data
+; #######################################
 bits 16
-
-disk_fail:
-    mov ah,0x0E
-    mov al,'E'
-    int 0x10
-.hang:
-    cli
-    hlt
-    jmp .hang
-
-; -------- GDT --------
-gdt:
-    dq 0x0000000000000000
-    dq 0x00CF9A000000FFFF
-    dq 0x00CF92000000FFFF
-
-gdt_descriptor:
-    dw gdt_descriptor - gdt - 1
-    dd gdt
 
 section .bss
 
 vbe_info_block  resb 512; Reserve 512 bytes for VBE Info
 mode_info_block resb 256 ; Reserve 256 bytes for Mode Info
 vbe_lfb_ptr:    resd 1   ; To store the Linear Framebuffer address
+e820_count:     resd 1
+e820_map:       resb 24 * 32     ; 32 entries max, 24 bytes each

@@ -143,8 +143,8 @@ void createWindow(View *v) {
 
 void drawSomeFancyGraphics(View *v, Font *font) {
     v->dirty = true;
-    gfxFastFill(gfxGetFramebuffer(), 0xff1111ff, gfxWidth() * gfxHeight());
-    gfxClearView(v, 0xffff7711);
+    gfxFastFill(gfxGetFramebuffer(), 0xff113344, gfxWidth() * gfxHeight());
+    gfxClearView(v, 0xff447799);
     gfxDrawRect(v, 0xffffffff, 32, 32, 256, 256);
     print(font, v, "Hello world", 8,8, 0xffffffff);
     gfxRenderView(v);

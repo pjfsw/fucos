@@ -12,7 +12,7 @@ static uint32_t next_ptr;
 
 void allocator_init(MemoryMap *memoryMap) {
     serial_println("Memory map:");
-    for (int i = 0 ; i < memoryMap->e820_count; i++) {
+    for (uint32_t i = 0 ; i < memoryMap->e820_count; i++) {
         E820Entry *entry = &memoryMap->e820[i];
         if (entry->type == 1) {
             serial_putdword(entry->base);

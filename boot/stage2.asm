@@ -18,6 +18,7 @@ start:
 
     call load_kernel
     call setup_vbe
+    call query_memory
     call enable_a20
 
     ; ---- switch to protected mode ----
@@ -163,6 +164,36 @@ setup_vbe:
     jmp .hang
 
 ; #######################################
+; Query memory
+; #######################################
+query_memory:
+    xor ebx, ebx                
+    xor ax, ax
+    mov es, ax
+    mov di, e820_map
+    mov dword [e820_count], 0
+
+.next:
+    xor ax, ax
+    mov es, ax
+    mov eax, 0xE820
+    mov edx, 0x534D4150     ; 'SMAP'
+    mov ecx, 24
+    mov dword [es:di+20], 1 ; some BIOSes want ext attr preset
+    int 0x15
+    jc .done                ; carry = error
+    cmp eax, 0x534D4150
+    jne .done
+
+    add di, 24
+    inc dword [e820_count]
+
+    test ebx, ebx
+    jne .next
+.done:
+    ret
+
+; #######################################
 ; Enable A20
 ; #######################################
 enable_a20:
@@ -205,7 +236,7 @@ protected_mode_entry:
 
     ; Move the address of the info block into EBX
     ; Since ES was 0 and ORG was 0x8000, the address is just the label
-    mov ebx, mode_info_block 
+    mov ebx, sys_info_block 
 
     jmp TARGET_KERNEL_ADDRESS
 
@@ -216,8 +247,10 @@ bits 16
 
 section .bss
 
-vbe_info_block  resb 512; Reserve 512 bytes for VBE Info
-mode_info_block resb 256 ; Reserve 256 bytes for Mode Info
 vbe_lfb_ptr:    resd 1   ; To store the Linear Framebuffer address
+vbe_info_block  resb 512; Reserve 512 bytes for VBE Info
+
+sys_info_block:
+mode_info_block resb 256 ; Reserve 256 bytes for Mode Info
 e820_count:     resd 1
 e820_map:       resb 24 * 32     ; 32 entries max, 24 bytes each

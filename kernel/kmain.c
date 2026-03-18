@@ -6,6 +6,7 @@
 #include "io.h"
 #include "serial.h"
 #include "vbemodeinfo.h"
+#include "sysinfo.h"
 #include "view.h"
 
 #define PIC1_CMD 0x20
@@ -153,12 +154,22 @@ void drawSomeFancyGraphics(Font *font) {
     //winY = (winY + 1) % 64;
 }
 
-void kmain(VbeModeInfo *vbeModeInfo) {
+void kmain(SysInfo *sysInfo) {
     serial_init();
     serial_println("FucOS booting");
     serial_putdword((uint32_t)kmain);
     serial_println("");
-    gfxInit(vbeModeInfo);
+    serial_println("Memory map:");
+    for (int i = 0 ; i < sysInfo->memoryMap.e820_count; i++) {
+        E820Entry *entry = &sysInfo->memoryMap.e820[i];
+        if (entry->type == 1) {
+            serial_putdword(entry->base);
+            serial_putc(' ');
+            serial_putdword(entry->length);
+            serial_println("");
+        }
+    }
+    gfxInit(&sysInfo->vbeModeInfo);
 
     idt_init();
     serial_println("Idt active");
